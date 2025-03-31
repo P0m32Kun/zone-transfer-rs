@@ -28,19 +28,15 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
       
-      - name: Verify build output
-        run: ls -la target/${{ matrix.target }}/release/
-      
-      - name: Package artifact
+      - name: Prepare artifact
         run: |
-          mkdir -p release
-          cp target/${{ matrix.target }}/release/zone-transfer-rs release/${{ matrix.artifact_name }}
-          tar -czvf release/${{ matrix.artifact_name }}.tar.gz -C release ${{ matrix.artifact_name }}
+          mkdir -p release/${{ matrix.artifact_name }}
+          cp target/${{ matrix.target }}/release/zone-transfer-rs release/${{ matrix.artifact_name }}/
       
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: release/${{ matrix.artifact_name }}.tar.gz
+          path: release/${{ matrix.artifact_name }}
 
   publish:
     needs: build
@@ -50,28 +46,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Create artifacts directory
-        run: mkdir -p artifacts
-      
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: dist
       
-      - name: List downloaded artifacts
-        run: ls -la artifacts/
-      
-      - name: Prepare release assets
-        run: |
-          mkdir -p dist
-          for f in artifacts/*.tar.gz; do
-            tar -xzvf "$f" -C dist
-          done
+      - name: List release assets
+        run: find dist -type f
       
       - uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
-            dist/*
+            dist/**/zone-transfer-rs
           draft: false

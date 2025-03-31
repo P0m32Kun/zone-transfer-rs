@@ -20,11 +20,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install cross
-        run: cargo install cross
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
       
-      - name: Build with cross
-        run: cross build --release --target ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4

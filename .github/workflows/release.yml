@@ -33,6 +33,11 @@ jobs:
         with:
           target: ${{ matrix.target }}
       
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
+
       - name: Install cross (Linux only)
         if: contains(matrix.target, 'linux')
         uses: taiki-e/install-action@cross

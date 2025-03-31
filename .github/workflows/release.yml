@@ -1,0 +1,149 @@
+name: Release Build
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-linux:
+    name: "Build for Linux (${{ matrix.target }})"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          target: ${{ matrix.target }}
+
+      - name: Build for Linux (${{ matrix.target }})
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Create Linux artifact
+        run: |
+          mkdir -p release
+          cp target/${{ matrix.target }}/release/zone-transfer release/zone-transfer-linux-${{ matrix.target }}
+          tar -czvf release/linux-${{ matrix.target }}.tar.gz release/zone-transfer-linux-${{ matrix.target }}
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary-${{ matrix.target }}
+          path: release/linux-${{ matrix.target }}.tar.gz
+
+  build-macos:
+    name: "Build for macOS (${{ matrix.target }})"
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          target: ${{ matrix.target }}
+
+      - name: Build for macOS (${{ matrix.target }})
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Create macOS artifact
+        run: |
+          mkdir -p release
+          cp target/${{ matrix.target }}/release/zone-transfer release/zone-transfer-macos-${{ matrix.target }}
+          tar -czvf release/macos-${{ matrix.target }}.tar.gz release/zone-transfer-macos-${{ matrix.target }}
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-binary-${{ matrix.target }}
+          path: release/macos-${{ matrix.target }}.tar.gz
+
+  create-release:
+    name: "Create Release and Upload Artifacts"
+    needs: [build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-binary-x86_64-unknown-linux-gnu
+          path: artifacts/linux/x86_64
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-binary-x86_64-apple-darwin
+          path: artifacts/macos/x86_64
+      - name: Download ARM Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-binary-aarch64-unknown-linux-gnu
+          path: artifacts/linux/aarch64
+      - name: Download ARM macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-binary-aarch64-apple-darwin
+          path: artifacts/macos/aarch64
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: "Release ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+
+      - name: Upload x86 Linux binary to Release
+        uses: actions/upload-release-asset@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/linux/x86_64/linux-x86_64-unknown-linux-gnu.tar.gz
+          asset_name: zone-transfer-linux-x86_64-${{ github.ref_name }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload ARM Linux binary to Release
+        uses: actions/upload-release-asset@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/linux/aarch64/linux-aarch64-unknown-linux-gnu.tar.gz
+          asset_name: zone-transfer-linux-aarch64-${{ github.ref_name }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload x86 macOS binary to Release
+        uses: actions/upload-release-asset@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/macos/x86_64/macos-x86_64-apple-darwin.tar.gz
+          asset_name: zone-transfer-macos-x86_64-${{ github.ref_name }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload ARM macOS binary to Release
+        uses: actions/upload-release-asset@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/macos/aarch64/macos-aarch64-apple-darwin.tar.gz
+          asset_name: zone-transfer-macos-aarch64-${{ github.ref_name }}.tar.gz
+          asset_content_type: application/gzip

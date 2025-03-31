@@ -8,3 +8,4 @@ clap = { version = "4.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["full"] }
 colored = "2.0"
 anyhow = "1.0"
+cross = "0.2.5"

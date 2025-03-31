@@ -13,9 +13,9 @@ jobs:
       matrix:
         include:
           - target: x86_64-apple-darwin
-            artifact_name: zone-transfer-rs-macos-x86_64
+            artifact_name: macos-x86_64
           - target: aarch64-apple-darwin  
-            artifact_name: zone-transfer-rs-macos-arm64
+            artifact_name: macos-arm64
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,15 +28,22 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
       
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Package artifact
+        run: |
+          mkdir -p release
+          cp target/${{ matrix.target }}/release/zone-transfer-rs release/${{ matrix.artifact_name }}
+          tar -czvf release/${{ matrix.artifact_name }}.tar.gz -C release ${{ matrix.artifact_name }}
+      
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: target/${{ matrix.target }}/release/zone-transfer-rs
+          path: release/${{ matrix.artifact_name }}.tar.gz
 
   publish:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       
@@ -44,10 +51,18 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: '*.tar.gz'
+          merge-multiple: true
+      
+      - name: Extract artifacts
+        run: |
+          mkdir -p dist
+          find artifacts -name '*.tar.gz' -exec tar -xzvf {} -C dist \;
       
       - uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
-            artifacts/zone-transfer-rs-macos-x86_64
-            artifacts/zone-transfer-rs-macos-arm64
+            dist/*
           draft: false

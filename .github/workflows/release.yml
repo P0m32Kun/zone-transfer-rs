@@ -33,6 +33,10 @@ jobs:
         with:
           target: ${{ matrix.target }}
       
+      - name: Setup Rust target (Linux only)
+        if: contains(matrix.target, 'linux')
+        run: rustup target add ${{ matrix.target }}
+
       - name: Install cross (Linux only)
         if: contains(matrix.target, 'linux')
         run: cargo install cross

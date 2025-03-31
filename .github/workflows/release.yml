@@ -21,9 +21,7 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             artifact_name: linux-x86_64
             output_name: zone-transfer-rs-x86_64-unknown-linux-gnu
-          - target: aarch64-unknown-linux-musl
-            artifact_name: linux-arm64
-            output_name: zone-transfer-rs-aarch64-unknown-linux-musl
+            
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -79,7 +77,6 @@ jobs:
           cp dist/macos-x86_64/zone-transfer-rs-x86_64-apple-darwin release_assets/
           cp dist/macos-arm64/zone-transfer-rs-aarch64-apple-darwin release_assets/
           cp dist/linux-x86_64/zone-transfer-rs-x86_64-unknown-linux-gnu release_assets/
-          cp dist/linux-arm64/zone-transfer-rs-aarch64-unknown-linux-musl release_assets/
       
       - uses: softprops/action-gh-release@v1
         env:

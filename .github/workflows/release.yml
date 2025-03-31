@@ -32,17 +32,8 @@ jobs:
           toolchain: stable
           target: ${{ matrix.target }}
 
-      - name: Install cross (Linux only)
-        if: contains(matrix.target, 'linux')
-        uses: taiki-e/install-action@cross
-
       - name: Build
-        run: |
-          if [[ "${{ matrix.target }}" == *"linux"* ]]; then
-            cross build --release --locked --target ${{ matrix.target }}
-          else
-            cargo build --release --locked --target ${{ matrix.target }}
-          fi
+        run: cargo build --release --locked --target ${{ matrix.target }}
       
       - name: Prepare artifact
         run: |

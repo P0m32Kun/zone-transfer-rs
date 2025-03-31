@@ -29,11 +29,14 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
       
+      - name: Verify build output
+        run: ls -la target/${{ matrix.target }}/release/
+      
       - name: Package artifact
         run: |
           mkdir -p release
-          cp target/${{ matrix.target }}/release/zone-transfer release/
-          tar -czvf release/${{ matrix.target }}.tar.gz -C release zone-transfer
+          cp target/${{ matrix.target }}/release/zone-transfer-rs release/
+          tar -czvf release/${{ matrix.target }}.tar.gz -C release zone-transfer-rs
       
       - uses: actions/upload-artifact@v4
         with:
@@ -58,5 +61,5 @@ jobs:
       - uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/*/zone-transfer
+            artifacts/*/zone-transfer-rs
           draft: false

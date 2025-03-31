@@ -2,48 +2,37 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ['v*.*.*']
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   build:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: macos-latest
-            target: aarch64-apple-darwin
-    runs-on: ${{ matrix.os }}
+          - target: x86_64-apple-darwin
+            artifact_name: zone-transfer-rs-macos-x86_64
+          - target: aarch64-apple-darwin  
+            artifact_name: zone-transfer-rs-macos-arm64
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install cross
+        run: cargo install cross
+      
+      - name: Build with cross
+        run: cross build --release --target ${{ matrix.target }}
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          target: ${{ matrix.target }}
-      
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
-      
-      - name: Verify build output
-        run: ls -la target/${{ matrix.target }}/release/
-      
-      - name: Package artifact
-        run: |
-          mkdir -p release
-          cp target/${{ matrix.target }}/release/zone-transfer-rs release/
-          tar -czvf release/${{ matrix.target }}.tar.gz -C release zone-transfer-rs
-      
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.target }}
-          path: release/${{ matrix.target }}.tar.gz
+          name: ${{ matrix.artifact_name }}
+          path: target/${{ matrix.target }}/release/zone-transfer-rs
 
-  release:
+  publish:
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -54,12 +43,9 @@ jobs:
         with:
           path: artifacts
       
-      - name: Extract artifacts
-        run: |
-          find artifacts -name '*.tar.gz' -exec tar -xzvf {} -C artifacts \;
-      
       - uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/*/zone-transfer-rs
+            artifacts/zone-transfer-rs-macos-x86_64
+            artifacts/zone-transfer-rs-macos-arm64
           draft: false
